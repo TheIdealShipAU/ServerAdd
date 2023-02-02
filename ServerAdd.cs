@@ -15,6 +15,7 @@ public partial class ServerAdd : BasePlugin
     public static ConfigEntry<bool> isHttps { get; set; }
     public static ConfigEntry<bool> isDNS { get; set; }
     public static ConfigEntry<string> ServerName { get; set; }
+    public static IRegionInfo[] defaultRegions;
     public override void Load()
     {
         Ip = Config.Bind("Custom", "Custom Server IP", "127.0.0.1");
@@ -22,6 +23,8 @@ public partial class ServerAdd : BasePlugin
         isHttps = Config.Bind("Custom", "Custom Server isHttps", false);
         isHttps = Config.Bind("Custom", "Custom Server isHttps", false);
         ServerName = Config.Bind("Custom", "Custom Server Name", "Custom");
+
+        defaultRegions = ServerManager.DefaultRegions;
 
         ModManager.Instance.ShowModStamp();
         Harmony.PatchAll();

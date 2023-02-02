@@ -40,8 +40,10 @@ namespace ServerAdd
         private static GameObject ClearButton;
         private static GameObject ClearAllButton;
         private static Vector3 pos = new Vector3(3f, 2f, -100f);
-        public static bool isOpen;
-        public static ServerInfo[] ServerInfo;
+        private static bool isOpen;
+        private static ServerInfo[] ServerInfo;
+        private static IRegionInfo[] regions;
+        private static ServerManager serverManager = DestroyableSingleton<ServerManager>.Instance;
         public static void Postfix(RegionMenu __instance)
         {
             isOpen = __instance.isActiveAndEnabled;
@@ -164,7 +166,6 @@ namespace ServerAdd
 
                 isHttpsButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
                 isHttpsButton.name = "isHttpsButton";
-                isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
 
                 var text = isHttpsButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
                 PassiveButton isHttpsPassiveButton = isHttpsButton.GetComponent<PassiveButton>();
@@ -179,27 +180,38 @@ namespace ServerAdd
 
                 void act()
                 {
-                    if (!ServerAdd.isDNS.Value)
-                    {
-                        if (ServerAdd.isHttps.Value)
-                        {
-                            ServerAdd.isHttps.Value = false;
-                        }
-                        else
-                        {
-                            ServerAdd.isHttps.Value = true;
-                        }
-                        UpdateRegions();
-                    }
-                    Color isHttpsColor = ServerAdd.isHttps.Value ? Palette.AcceptedGreen : Palette.White;
-                    isHttpsPassiveButton.OnMouseOut.AddListener((Action)(() => isHttpsButtonSprite.color = isHttpsColor));
+                    ServerAdd.isHttps.Value = ServerAdd.isDNS.Value ? false : !ServerAdd.isHttps.Value;
+                    isHttpsButton.UpdateButtonColor(ServerAdd.isHttps.Value);
                 }
             }
 
-            if (isHttpsButton.transform.position != pos - new Vector3(0f, 3f, 0f))
+            if (isDNSButton == null || isDNSButton.gameObject == null)
             {
-                isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
+                GameObject tf = GameObject.Find("NormalMenu/BackButton");
+
+                isDNSButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
+                isDNSButton.name = "isDNSButton";
+
+                var text = isDNSButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
+                PassiveButton isDNSPassiveButton = isDNSButton.GetComponent<PassiveButton>();
+                SpriteRenderer isDNSButtonSprite = isDNSButton.GetComponent<SpriteRenderer>();
+                isDNSPassiveButton.OnClick = new();
+                isDNSPassiveButton.OnClick.AddListener((UnityAction)DNSact);
+                Color isDNSColor = ServerAdd.isDNS.Value ? Palette.AcceptedGreen : Palette.White;
+                isDNSPassiveButton.OnMouseOut.AddListener((Action)(() => isDNSButtonSprite.color = isDNSColor));
+                text.SetText("isDNS");
+                __instance.StartCoroutine(Effects.Lerp(0.01f, new Action<float>((p) => text.SetText("isDNS"))));
+                isDNSButton.gameObject.SetActive(isOpen);
+
+                void DNSact()
+                {
+                    ServerAdd.isDNS.Value = !ServerAdd.isDNS.Value;
+                    isDNSButton.UpdateButtonColor(ServerAdd.isDNS.Value);
+                }
             }
+
+            isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
+            isDNSButton.transform.position = pos - new Vector3(-1f, 3f, 0f);
         }
 
         // This is part of the Mini.RegionInstaller, Licensed under GPLv3
@@ -209,25 +221,23 @@ namespace ServerAdd
         {
             string serverIp = (ServerAdd.isDNS.Value ? "" : (ServerAdd.isHttps.Value ? "https://" : "http://")) + ServerAdd.Ip.Value;
             ServerInfo serverInfo = new ServerInfo(ServerAdd.ServerName.Value, serverIp, ServerAdd.Port.Value, false);
-            ServerInfo[] SInfo = new ServerInfo[] { serverInfo };
-            ServerManager serverManager = DestroyableSingleton<ServerManager>.Instance;
-            var regions = new IRegionInfo[] {
-                new StaticHttpRegionInfo(ServerAdd.ServerName.Value, StringNames.NoTranslation, serverIp, SInfo).CastFast<IRegionInfo>(),
-            };
+            ServerInfo = new ServerInfo[] { serverInfo };
+        }
 
-            IRegionInfo currentRegion = serverManager.CurrentRegion;
+        public static void UpdateRegionInfo()
+        {
             foreach (IRegionInfo region in regions)
             {
-                if (currentRegion != null && region.Name.Equals(currentRegion.Name, StringComparison.OrdinalIgnoreCase))
-                    currentRegion = region;
                 serverManager.AddOrUpdateRegion(region);
             }
+        }
 
-            // AU remembers the previous region that was set, so we need to restore it
-            if (currentRegion != null)
-            {
-                serverManager.SetRegion(currentRegion);
-            }
+        public static void UpdateButtonColor(this GameObject objet, bool open)
+        {
+            var PassiveButton = objet.GetComponent<PassiveButton>();
+            var ButtonSprite = objet.GetComponent<SpriteRenderer>();
+            Color color = open ? Palette.AcceptedGreen : Palette.White;
+            PassiveButton.OnMouseOut.AddListener((Action)(() => ButtonSprite.color = color));
         }
 
         private static class CastHelper<T> where T : Il2CppObjectBase
