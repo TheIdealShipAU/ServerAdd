@@ -21,12 +21,10 @@ public partial class ServerAdd : BasePlugin
         Ip = Config.Bind("Custom", "Custom Server IP", "127.0.0.1");
         Port = Config.Bind("Custom", "Custom Server Port", (ushort)22000);
         isHttps = Config.Bind("Custom", "Custom Server isHttps", false);
-        isHttps = Config.Bind("Custom", "Custom Server isHttps", false);
+        isDNS = Config.Bind("Custom", "Custom Server isHttps", false);
         ServerName = Config.Bind("Custom", "Custom Server Name", "Custom");
 
         defaultRegions = ServerManager.DefaultRegions;
-
-        ModManager.Instance.ShowModStamp();
         Harmony.PatchAll();
     }
 

@@ -58,7 +58,6 @@ namespace ServerAdd
                 }
             }
             if (template == null || template.GameIdText == null) return;
-
             if (ipField == null || ipField.gameObject == null)
             {
                 ipField = UnityEngine.Object.Instantiate(template.GameIdText, __instance.transform);
@@ -94,7 +93,7 @@ namespace ServerAdd
             {
                 ServerNameField = UnityEngine.Object.Instantiate(template.GameIdText, __instance.transform);
                 ServerNameField.gameObject.name = "ServerNameTextBox";
-                var arrow = ipField.transform.FindChild("arrowEnter");
+                var arrow = ServerNameField.transform.FindChild("arrowEnter");
                 if (arrow == null || arrow.gameObject == null) return;
                 UnityEngine.Object.DestroyImmediate(arrow.gameObject);
 
@@ -109,15 +108,15 @@ namespace ServerAdd
                     ServerNameField.SetText(ServerAdd.ServerName.Value);
                 })));
 
-                ipField.ClearOnFocus = false;
-                ipField.OnEnter = ipField.OnChange = new Button.ButtonClickedEvent();
-                ipField.OnFocusLost = new Button.ButtonClickedEvent();
-                ipField.OnChange.AddListener((UnityAction)onEnterOrIpChange);
-                ipField.gameObject.SetActive(isOpen);
+                ServerNameField.ClearOnFocus = false;
+                ServerNameField.OnEnter = ServerNameField.OnChange = new Button.ButtonClickedEvent();
+                ServerNameField.OnFocusLost = new Button.ButtonClickedEvent();
+                ServerNameField.OnChange.AddListener((UnityAction)onEnterOrNameChange);
+                ServerNameField.gameObject.SetActive(isOpen);
 
-                void onEnterOrIpChange()
+                void onEnterOrNameChange()
                 {
-                    ServerAdd.ServerName.Value = ipField.text;
+                    ServerAdd.ServerName.Value = ServerNameField.text;
                 }
             }
 
@@ -166,6 +165,7 @@ namespace ServerAdd
 
                 isHttpsButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
                 isHttpsButton.name = "isHttpsButton";
+                isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
 
                 var text = isHttpsButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
                 PassiveButton isHttpsPassiveButton = isHttpsButton.GetComponent<PassiveButton>();
@@ -191,27 +191,44 @@ namespace ServerAdd
 
                 isDNSButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
                 isDNSButton.name = "isDNSButton";
+                isDNSButton.transform.position = pos - new Vector3(0f, 4f, 0f);
 
-                var text = isDNSButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
+                var DNSButtontext = isDNSButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
                 PassiveButton isDNSPassiveButton = isDNSButton.GetComponent<PassiveButton>();
                 SpriteRenderer isDNSButtonSprite = isDNSButton.GetComponent<SpriteRenderer>();
                 isDNSPassiveButton.OnClick = new();
                 isDNSPassiveButton.OnClick.AddListener((UnityAction)DNSact);
                 Color isDNSColor = ServerAdd.isDNS.Value ? Palette.AcceptedGreen : Palette.White;
                 isDNSPassiveButton.OnMouseOut.AddListener((Action)(() => isDNSButtonSprite.color = isDNSColor));
-                text.SetText("isDNS");
-                __instance.StartCoroutine(Effects.Lerp(0.01f, new Action<float>((p) => text.SetText("isDNS"))));
+                DNSButtontext.SetText("isDNS");
+                __instance.StartCoroutine(Effects.Lerp(0.01f, new Action<float>((p) => DNSButtontext.SetText("isDNS"))));
                 isDNSButton.gameObject.SetActive(isOpen);
 
                 void DNSact()
                 {
-                    ServerAdd.isDNS.Value = !ServerAdd.isDNS.Value;
+                    var versionShower = DestroyableSingleton<VersionShower>.Instance;
+                    var t = versionShower.text.text;
+                    bool p = t.Contains("s");
+                    var found = t.IndexOf(p ? "s" : "e");
+                    string ver = t.Replace(t.Substring(found), "").Replace("v","");
+                    if (ver == "2022.12.8" && ver == "2022.12.14")
+                    {
+                        var popup = UnityEngine.Object.Instantiate(DiscordManager.Instance.discordPopup, Camera.main!.transform);
+                        var background = popup.transform.Find("Background").GetComponent<SpriteRenderer>();
+                        var size = background.size;
+                        size.x *= 2.5f;
+                        background.size = size;
+                        popup.TextAreaTMP.fontSizeMin = 2;
+                        popup.Show("Your version cannot connect to the server using DnsRegionInfo\n你的版本不支持使用DNS方式连接");
+                    }
+                    else{ ServerAdd.isDNS.Value = !ServerAdd.isDNS.Value; }
                     isDNSButton.UpdateButtonColor(ServerAdd.isDNS.Value);
                 }
             }
 
-            isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
-            isDNSButton.transform.position = pos - new Vector3(-1f, 3f, 0f);
+            if (isHttpsButton.transform.position != pos - new Vector3(0f, 3f, 0f)) isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
+
+            if (isDNSButton.transform.position != pos - new Vector3(0f, 4f, 0f)) isDNSButton.transform.position = pos - new Vector3(0f, 4f, 0f);
         }
 
         // This is part of the Mini.RegionInstaller, Licensed under GPLv3
@@ -234,10 +251,10 @@ namespace ServerAdd
 
         public static void UpdateButtonColor(this GameObject objet, bool open)
         {
-            var PassiveButton = objet.GetComponent<PassiveButton>();
-            var ButtonSprite = objet.GetComponent<SpriteRenderer>();
+            var objectPassiveButton = objet.GetComponent<PassiveButton>();
+            var objectButtonSprite = objet.GetComponent<SpriteRenderer>();
             Color color = open ? Palette.AcceptedGreen : Palette.White;
-            PassiveButton.OnMouseOut.AddListener((Action)(() => ButtonSprite.color = color));
+            objectPassiveButton.OnMouseOut.AddListener((Action)(() => objectButtonSprite.color = color));
         }
 
         private static class CastHelper<T> where T : Il2CppObjectBase
