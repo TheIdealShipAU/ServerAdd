@@ -25,6 +25,8 @@ using System;
 using UnityEngine.Events;
 using Il2CppInterop.Runtime.InteropTypes;
 using System.Linq.Expressions;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace ServerAdd
 {
@@ -37,12 +39,11 @@ namespace ServerAdd
         private static GameObject isHttpsButton;
         private static GameObject isDNSButton;
         private static GameObject AddButton;
-        private static GameObject ClearButton;
+/*         private static GameObject ClearButton; */
         private static GameObject ClearAllButton;
-        private static Vector3 pos = new Vector3(3f, 2f, -100f);
-        private static bool isOpen;
-        private static ServerInfo[] ServerInfo;
         private static IRegionInfo[] regions;
+        private static Vector3 pos = new Vector3(3f, 2.5f, -100f);
+        private static bool isOpen;
         private static ServerManager serverManager = DestroyableSingleton<ServerManager>.Instance;
         public static void Postfix(RegionMenu __instance)
         {
@@ -165,7 +166,7 @@ namespace ServerAdd
 
                 isHttpsButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
                 isHttpsButton.name = "isHttpsButton";
-                isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
+                isHttpsButton.transform.position = pos - new Vector3(-0.6f, 3f, 0f);
 
                 var text = isHttpsButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
                 PassiveButton isHttpsPassiveButton = isHttpsButton.GetComponent<PassiveButton>();
@@ -191,7 +192,7 @@ namespace ServerAdd
 
                 isDNSButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
                 isDNSButton.name = "isDNSButton";
-                isDNSButton.transform.position = pos - new Vector3(0f, 4f, 0f);
+                isDNSButton.transform.position = pos - new Vector3(0.6f, 3f, 0f);
 
                 var DNSButtontext = isDNSButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
                 PassiveButton isDNSPassiveButton = isDNSButton.GetComponent<PassiveButton>();
@@ -219,35 +220,149 @@ namespace ServerAdd
                         size.x *= 2.5f;
                         background.size = size;
                         popup.TextAreaTMP.fontSizeMin = 2;
-                        popup.Show("Your version cannot connect to the server using DnsRegionInfo\n你的版本不支持使用DNS方式连接");
+                        popup.Show("你的版本不支持使用DNS方式连接");
                     }
                     else{ ServerAdd.isDNS.Value = !ServerAdd.isDNS.Value; }
                     isDNSButton.UpdateButtonColor(ServerAdd.isDNS.Value);
                 }
             }
 
-            if (isHttpsButton.transform.position != pos - new Vector3(0f, 3f, 0f)) isHttpsButton.transform.position = pos - new Vector3(0f, 3f, 0f);
+            if (AddButton == null || AddButton.gameObject == null)
+            {
+                GameObject tf = GameObject.Find("NormalMenu/BackButton");
 
-            if (isDNSButton.transform.position != pos - new Vector3(0f, 4f, 0f)) isDNSButton.transform.position = pos - new Vector3(0f, 4f, 0f);
+                AddButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
+                AddButton.name = "AddButton";
+                AddButton.transform.position = pos - new Vector3(-0.6f, 4f, 0f);
+
+                var AddButtontext = AddButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
+                PassiveButton AddButtonPassiveButton = AddButton.GetComponent<PassiveButton>();
+                SpriteRenderer AddButtonButtonSprite = AddButton.GetComponent<SpriteRenderer>();
+                AddButtonPassiveButton.OnClick = new();
+                AddButtonPassiveButton.OnClick.AddListener((UnityAction)AddButtonVoid);
+                AddButtontext.SetText("添加");
+                __instance.StartCoroutine(Effects.Lerp(0.01f, new Action<float>((p) => AddButtontext.SetText("添加"))));
+                AddButton.gameObject.SetActive(isOpen);
+
+                void AddButtonVoid()
+                {
+                    AddRegionInfo();
+                    UpdateRegionInfo();
+                }
+            }
+
+/*             if (ClearButton == null || ClearButton.gameObject == null)
+            {
+                GameObject tf = GameObject.Find("NormalMenu/BackButton");
+
+                ClearButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
+                ClearButton.name = "ClearButton";
+                ClearButton.transform.position = pos - new Vector3(0.5f, 4f, 0f);
+
+                var ClearButtontext = ClearButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
+                PassiveButton ClearButtonPassiveButton = ClearButton.GetComponent<PassiveButton>();
+                SpriteRenderer ClearButtonButtonSprite = ClearButton.GetComponent<SpriteRenderer>();
+                ClearButtonPassiveButton.OnClick = new();
+                ClearButtonPassiveButton.OnClick.AddListener((UnityAction)ClearButtonVoid);
+                ClearButtontext.SetText("Clear");
+                __instance.StartCoroutine(Effects.Lerp(0.01f, new Action<float>((p) => ClearButtontext.SetText("Clear"))));
+                ClearButton.gameObject.SetActive(isOpen);
+
+                void ClearButtonVoid()
+                {
+                    ClearRegionInfo();
+                }
+            } */
+
+            if (ClearAllButton == null || ClearAllButton.gameObject == null)
+            {
+                GameObject tf = GameObject.Find("NormalMenu/BackButton");
+
+                ClearAllButton = UnityEngine.Object.Instantiate(tf, __instance.transform);
+                ClearAllButton.name = "ClearAllButton";
+                ClearAllButton.transform.position = pos - new Vector3(0.6f, 4f, 0f);
+
+                var ClearAllButtontext = ClearAllButton.transform.GetChild(0).GetComponent<TMPro.TMP_Text>();
+                PassiveButton ClearAllButtonPassiveButton = ClearAllButton.GetComponent<PassiveButton>();
+                SpriteRenderer ClearAllButtonButtonSprite = ClearAllButton.GetComponent<SpriteRenderer>();
+                ClearAllButtonPassiveButton.OnClick = new();
+                ClearAllButtonPassiveButton.OnClick.AddListener((UnityAction)ClearAllButtonVoid);
+                ClearAllButtontext.SetText("清除所有");
+                __instance.StartCoroutine(Effects.Lerp(0.01f, new Action<float>((p) => ClearAllButtontext.SetText("清除所有"))));
+                ClearAllButton.gameObject.SetActive(isOpen);
+
+                void ClearAllButtonVoid()
+                {
+                    serverManager.SetRegion(ServerAdd.defaultRegions[0]);
+                    serverManager.AvailableRegions = ServerAdd.defaultRegions;
+                    serverManager.SaveServers();
+                }
+            }
+
+            if (isHttpsButton.transform.position != pos - new Vector3(-0.6f, 3f, 0f)) isHttpsButton.transform.position = pos - new Vector3(-0.6f, 3f, 0f);
+
+            if (isDNSButton.transform.position != pos - new Vector3(0.6f, 3f, 0f)) isDNSButton.transform.position = pos - new Vector3(0.6f, 3f, 0f);
+
+            if (AddButton.transform.position != pos - new Vector3(-0.6f, 4f, 0f)) AddButton.transform.position = pos - new Vector3(-0.6f, 4f, 0f);
+
+            /* if (ClearButton.transform.position != pos - new Vector3(0.5f, 4f, 0f)) ClearButton.transform.position = pos - new Vector3(0.5f, 4f, 0f); */
+
+            if (ClearAllButton.transform.position != pos - new Vector3(0.6f, 4f, 0f)) ClearAllButton.transform.position = pos - new Vector3(0.6f, 4f, 0f);
         }
 
         // This is part of the Mini.RegionInstaller, Licensed under GPLv3
         // file="RegionInstallPlugin.cs" company="miniduikboot">
 
-        public static void UpdateRegions()
-        {
-            string serverIp = (ServerAdd.isDNS.Value ? "" : (ServerAdd.isHttps.Value ? "https://" : "http://")) + ServerAdd.Ip.Value;
-            ServerInfo serverInfo = new ServerInfo(ServerAdd.ServerName.Value, serverIp, ServerAdd.Port.Value, false);
-            ServerInfo = new ServerInfo[] { serverInfo };
-        }
 
         public static void UpdateRegionInfo()
         {
+            IRegionInfo currentRegion = serverManager.CurrentRegion;
             foreach (IRegionInfo region in regions)
             {
-                serverManager.AddOrUpdateRegion(region);
+                if (region != null)
+                {
+                    if (currentRegion != null && region.Name.Equals(currentRegion.Name, StringComparison.OrdinalIgnoreCase))
+                        currentRegion = region;
+                    serverManager.AddOrUpdateRegion(region);
+                }
+            }
+
+            // AU remembers the previous region that was set, so we need to restore it
+            if (currentRegion != null)
+            {
+                serverManager.SetRegion(currentRegion);
             }
         }
+
+        public static void AddRegionInfo()
+        {
+            string serverIp = (ServerAdd.isDNS.Value ? "" : (ServerAdd.isHttps.Value ? "https://" : "http://")) + ServerAdd.Ip.Value;
+            if (!ServerAdd.isDNS.Value)
+            {
+                ServerInfo serverInfo = new ServerInfo(ServerAdd.ServerName.Value, serverIp, ServerAdd.Port.Value, false);
+                ServerInfo[] ServerInfo = new ServerInfo[] { serverInfo };
+                regions = new IRegionInfo[] { new StaticHttpRegionInfo(ServerAdd.ServerName.Value, StringNames.NoTranslation, serverIp, ServerInfo).CastFast<IRegionInfo>()};
+            }
+            else
+            {
+                regions = new IRegionInfo[] { new DnsRegionInfo(serverIp, ServerAdd.ServerName.Value, StringNames.NoTranslation, serverIp, ServerAdd.Port.Value, false).CastFast<IRegionInfo>()};
+            }
+        }
+
+/*         public static void ClearRegionInfo()
+        {
+
+            foreach (IRegionInfo r in serverManager.AvailableRegions.ToList())
+            {
+                if (ServerAdd.ServerName.Value.Equals(r.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    List<IRegionInfo> newRegions = serverManager.AvailableRegions.ToList();
+                    newRegions.Remove(r);
+                    serverManager.AvailableRegions = newRegions.ToArray();
+                    serverManager.SetRegion(ServerAdd.defaultRegions[0]);
+                }
+            }
+        } */
 
         public static void UpdateButtonColor(this GameObject objet, bool open)
         {
