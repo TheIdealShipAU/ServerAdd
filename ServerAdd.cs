@@ -1,6 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-using BepInEx.Unity.IL2CPP;
+using BepInEx.IL2CPP;
 using HarmonyLib;
 
 namespace ServerAdd;
